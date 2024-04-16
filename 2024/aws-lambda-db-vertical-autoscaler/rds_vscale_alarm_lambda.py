@@ -31,7 +31,7 @@ def send_sns_alert(message):
 
 def get_instance_details(client, instance_identifier):
     """
-    get instance details
+    get the instance details
     """
     try:
         response = client.describe_db_instances(DBInstanceIdentifier=instance_identifier)
@@ -40,21 +40,21 @@ def get_instance_details(client, instance_identifier):
         cluster_identifier = instance_info.get('DBClusterIdentifier', None)
         return instance_class, cluster_identifier
     except ClientError as e:
-        error_message = f"Error getting DB instance details: {e}"
+        error_message = f"Error getting the DB instance details: {e}"
         print(error_message)
         send_sns_alert(error_message)
         return None, None
 
 def get_cluster_version(client, cluster_identifier):
     """
-    get cluster version
+    get the cluster version
     """
     try:
         response = client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)
         cluster_info = response['DBClusters'][0]
         return cluster_info['EngineVersion']
     except ClientError as e:
-        error_message = f"Error getting DB cluster version: {e}"
+        error_message = f"Error getting the DB cluster version: {e}"
         print(error_message)
         send_sns_alert(error_message)
         return None
@@ -70,7 +70,7 @@ def instance_type_sorter(instance_type):
 
 def change_instance_type(client, instance_identifier, new_instance_type):
     """
-    change instance type
+    change the instance type
     """
     try:
         response = client.modify_db_instance(
@@ -80,20 +80,20 @@ def change_instance_type(client, instance_identifier, new_instance_type):
         )
         return response, None
     except ClientError as e:
-        error_message = f"An error during the attempt to vertically scale the RDS instance {e}"
+        error_message = f"Error during an attempt to vertically scale the RDS instance {e}"
         print(error_message)
         send_sns_alert(error_message)
         return None, str(e)
 
 def get_instance_arn(client, instance_identifier):
     """
-    get instance arn
+    get the instance arn
     """
     try:
         instance_info = client.describe_db_instances(DBInstanceIdentifier=instance_identifier)
         return instance_info['DBInstances'][0]['DBInstanceArn']
     except ClientError as e:
-        error_message = f"Error getting instance ARN for {instance_identifier}: {e}"
+        error_message = f"Error getting the instance ARN for {instance_identifier}: {e}"
         print(error_message)
         send_sns_alert(error_message)
         return None
@@ -101,11 +101,11 @@ def get_instance_arn(client, instance_identifier):
 
 def add_modifying_tag(client, instance_identifier):
     """
-    add modifying tag and timestamp to prevent a few actions in one period
+    add the modifying tag and timestamp to prevent simultaneous actions at the same time
     """
     instance_arn = get_instance_arn(client, instance_identifier)
     if not instance_arn:
-        print(f"ARN not found for instance {instance_identifier}")
+        print(f"ARN not found for the instance {instance_identifier}")
         return
     timestamp = datetime.now(timezone.utc).isoformat()
     try:
@@ -115,15 +115,15 @@ def add_modifying_tag(client, instance_identifier):
                   {'Key': 'modificationTimestamp', 'Value': timestamp}
                   ]
         )
-        print(f"Added 'modifying' tag to instance {instance_identifier}")
+        print(f"Added the 'modifying' tag to instance {instance_identifier}")
     except ClientError as e:
-        error_message = f"Error adding 'modifying' tag to {instance_identifier}: {e}"
+        error_message = f"Error adding the 'modifying' tag to {instance_identifier}: {e}"
         print(error_message)
         send_sns_alert(error_message)
 
 def any_instance_has_modifying_tag(client, cluster_instances):
     """
-    search if modifying tag exists
+    check if the modifying tag exists
     """
     for member in cluster_instances:
         instance_arn = get_instance_arn(client, member['DBInstanceIdentifier'])
@@ -169,7 +169,7 @@ def modification_timestamps(client, cluster_instances, cooldown_period):
 
 def any_member_modifying(client, cluster_instances):
     """
-    checking if any cluster instance already modifing
+    checking if any cluster instance is being modified already
     """
     for member in cluster_instances:
         instance_info = client.describe_db_instances(DBInstanceIdentifier=member['DBInstanceIdentifier'])
@@ -193,17 +193,17 @@ def lambda_handler(event, _):
                     break
 
             if db_instance_identifier is None:
-                raise ValueError("DBInstanceIdentifier not found in CloudWatch Alarm event")
+                raise ValueError("DBInstanceIdentifier not found in the CloudWatch Alarm event")
 
             _, cluster_identifier = get_instance_details(rds_client, db_instance_identifier)
             if not cluster_identifier:
-                raise ValueError("Instance is not part of any RDS cluster")
+                raise ValueError("Instance is not a part of any RDS cluster")
 
             cluster_response = rds_client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)
             cluster_instances = cluster_response['DBClusters'][0]['DBClusterMembers']
 
             if any_member_modifying(rds_client, cluster_instances):
-                print("At least one instance in the cluster is currently modifying.")
+                print("At least one instance in the cluster is currently being modified.")
                 return
 
             writer_instance_identifier, writer_instance_type = None, None
@@ -228,7 +228,7 @@ def lambda_handler(event, _):
 
             # Ensure writer_instance_type is defined before comparing
             if writer_instance_type is None:
-                raise ValueError("Writer instance type not found in the cluster")
+                raise ValueError("The writer instance type not found in the cluster")
 
 
             for member in cluster_instances:
@@ -237,41 +237,41 @@ def lambda_handler(event, _):
                     if instance_type_sorter(member_instance_type) <= instance_type_sorter(writer_instance_type):
                         is_writer_smallest = False
 
-            # Check if any instance is modifying or has modifying tag
+            # Check if any instance is being modified or has the modifying tag
             if any_instance_has_modifying_tag(rds_client, cluster_instances):
-                print("An instance in the cluster has 'modifying' tag.")
+                print("An instance in the cluster has the 'modifying' tag.")
                 return
 
             cooldown_not_expired = modification_timestamps(rds_client, cluster_instances, MODIFY_COOLDOWN_PERIOD)
             if cooldown_not_expired:
-                message = "An attempt was made to vertically scale the RDS instance in cluster, but Cooldown period has not expired for at least one instance in the cluster."
+                message = "We tried to vertically scale the RDS instance in the cluster. However, the Cooldown period has not expired for at least one instance in the cluster."
                 print(message)
                 print(send_sns_alert)
                 return
 
             if is_writer_smallest:
-                # Scaling up writer
+                # Scaling up the writer
                 new_writer_instance_type = SIZE_ORDER[writer_size_index + 1]
-                print(f"Selected new instance type for writer: {new_writer_instance_type}")
+                print(f"Selected new instance type for the writer: {new_writer_instance_type}")
                 if new_writer_instance_type != writer_instance_type:
-                    print(f"Attempting to change instance type for {writer_instance_identifier} to {new_writer_instance_type}")
+                    print(f"Attempting to change the instance type for {writer_instance_identifier} to {new_writer_instance_type}")
                     _, error = change_instance_type(rds_client, writer_instance_identifier, new_writer_instance_type)
                     if not error:
-                        message = f"Changed writer instance type to {new_writer_instance_type}"
+                        message = f"Changed the writer instance type to {new_writer_instance_type}"
                         print(message)
                         send_sns_alert(message)
                         add_modifying_tag(rds_client, writer_instance_identifier)
                     else:
-                        error_message = f"Failed to change writer instance type. Error: {error}"
+                        error_message = f"Failed to change the writer instance type. Error: {error}"
                         print(error_message)
                         send_sns_alert(error_message)
                 else:
-                    error_message = "Writer instance is already at the maximum size, scaling is not possible"
+                    error_message = "The writer instance is at the maximum size already; scaling is not possible"
                     print(error_message)
                     send_sns_alert(error_message)
                 continue
 
-            # Process reader instances
+            # Process the reader instances
             smallest_size = None
             min_size_index = float('inf')
             eligible_readers = []
@@ -290,28 +290,28 @@ def lambda_handler(event, _):
                 reader_to_scale = random.choice(eligible_readers)
                 new_reader_instance_type = SIZE_ORDER[min_size_index + 1]
                 if new_reader_instance_type != smallest_size:
-                    print(f"Attempting to change instance type for {reader_to_scale} to {new_reader_instance_type}")
+                    print(f"Attempting to change the instance type for {reader_to_scale} to {new_reader_instance_type}")
                     _, error = change_instance_type(rds_client, reader_to_scale, new_reader_instance_type)
                     if not error:
-                        message = f"Changed reader instance type to {new_reader_instance_type}"
+                        message = f"Changed the reader instance type to {new_reader_instance_type}"
                         print(message)
                         send_sns_alert(message)
                         add_modifying_tag(rds_client, reader_to_scale)
                     else:
-                        error_message = f"Failed to change reader instance type. Error: {error}"
+                        error_message = f"Failed to change the reader instance type. Error: {error}"
                         print(error_message)
                         send_sns_alert(error_message)
                 else:
-                    error_message = "Reader instance is already at the maximum size, scaling is not possible"
+                    error_message = "The reader instance is at the maximum size already; scaling is not possible"
                     print(error_message)
                     send_sns_alert(error_message)
             else:
                 print("No eligible readers to scale up.")
-                send_sns_alert("An attempt was made to vertically scale the RDS instance, but the conditions were not suitable.")
+                send_sns_alert("We tried to vertically scale the RDS instance. However, the required conditions were not met.")
 
         return {
             'statusCode': 200,
-            'body': json.dumps("Processed instances in cluster.")
+            'body': json.dumps("Processed instances in the cluster.")
         }
     except ClientError as e:
         error_message = f"Failed to execute the function. Error: {str(e)}"
