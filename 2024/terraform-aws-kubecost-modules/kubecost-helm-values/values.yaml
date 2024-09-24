@@ -54,6 +54,12 @@ networkCosts:
       google-cloud-services: false
       amazon-web-services: true
       azure-cloud-services: false
+    resources:
+      limits:
+        cpu: 500m
+      requests:
+        cpu: 50m
+        memory: 20Mi
 
 kubecostDeployment:
   replicas: 1
