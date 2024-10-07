@@ -1,0 +1,100 @@
+global:
+  prometheus:
+    enabled: false
+    fqdn: "http://prometheus.monitoring.svc:9090"
+
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+    fsGroup: 65534
+    runAsGroup: 65534
+    runAsUser: 65534
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    privileged: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+      - ALL
+
+kubecostMetrics:
+  exporter:
+    enabled: true
+    prometheusScrape: false
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "55Mi"
+    serviceMonitor:
+      enabled: true
+
+ingress:
+  enabled: true
+  className: main
+  annotations:
+    nginx.ingress.kubernetes.io/auth-url: "https://oauth2.company.com/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://oauth2.company/oauth2/start?rd=https%3A%2F%2F$host$escaped_request_uri"
+  paths: ["/"]
+  pathType: ImplementationSpecific
+  hosts:
+    - kubecost.company.com
+  tls:
+    - secretName: kubecost-tls
+      hosts:
+        - kubecost.company.com
+
+prometheus:
+  enabled: false
+
+networkCosts:
+  enabled: true
+  config:
+    services:
+      google-cloud-services: false
+      amazon-web-services: true
+      azure-cloud-services: false
+    resources:
+      limits:
+        cpu: 500m
+      requests:
+        cpu: 50m
+        memory: 20Mi
+
+kubecostDeployment:
+  replicas: 1
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 500Mi
+
+serviceMonitor:
+  enabled: true
+  networkCosts:
+    enabled: true
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789101:role/eks-dev-kubecost-feed-access
+  name: kubecost
+
+readonly: true
+
+kubecostProductConfigs:
+  clusterProfile: dev
+  customPricesEnabled: false
+  spotLabel: karpenter.sh/capacity-type
+  spotLabelValue: spot
+  awsSpotDataRegion: us-east-1
+  awsSpotDataBucket: dev-aws-spot-data-feed
+  awsSpotDataPrefix: feed
+  athenaProjectID: "123456789101"
+  athenaBucketName: "s3://aws-athena-query-results-12345678"
+  athenaRegion: us-east-1
+  athenaDatabase: athenacurcfn_kubecost
+  athenaTable: kubecost
+  athenaWorkgroup: "primary"
+  projectID: "123456789101"
+  clusterName: "dev"
+  currencyCode: "EUR"
