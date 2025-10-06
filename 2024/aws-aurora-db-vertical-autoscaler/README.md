@@ -10,5 +10,5 @@ when the instance modification initiated by _Alarm_ is completed. It
 scales the rest smallest RDS instances bringing them to the same size.
 
 This code is used (and better described) in the following article:
-* [“Implementing vertical autoscaling for Aurora databases using Lambda functions in AWS”](https://blog.palark.com/aws-rds-aurora-vertical-autoscaling/)
+* [“Implementing vertical autoscaling for Aurora databases using Lambda functions in AWS”](https://palark.com/blog/aws-rds-aurora-vertical-autoscaling/)
 (published in April 2024)

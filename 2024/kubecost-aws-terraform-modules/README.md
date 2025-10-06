@@ -11,5 +11,5 @@ They are accompanied by an example of values for the [official Helm chart](https
 to deploy Kubecost (`kubecost-helm-values.yaml`).
 
 This code is used (and better described) in the following article:
-* [“Kubecost with AWS integration: Implementing and automating with Terraform”](https://blog.palark.com/kubecost-aws-terraform-automation/)
+* [“Kubecost with AWS integration: Implementing and automating with Terraform”](https://palark.com/blog/kubecost-aws-terraform-automation/)
 (published in October 2024)

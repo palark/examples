@@ -91,7 +91,7 @@ def draw_chart_for_answers(question, answers, values, variants, total_answers):
     yshift = -120
   fig.add_annotation(
     showarrow=False,
-    text='Based on ' + str(total_answers) + ' respondents. Compiled by Palark for https://blog.palark.com/',
+    text='Based on ' + str(total_answers) + ' respondents. Compiled by Palark for https://palark.com/blog/',
     font=dict(size=10),
     xref='x domain', x=0.5, yref='y domain', y=0, yshift=yshift
   )
@@ -255,7 +255,7 @@ charts_categories['Container runtime'] = ['containerd', 'CRI-O']
 charts_categories['Container registry'] = ['Dragonfly', 'Harbor']
 charts_categories['K8s extensions & orchestration'] = ['Crossplane', 'Keda', 'Kubernetes', 'KubeVirt', 'Operator Framework', 'Volcano']
 charts_categories['Observability'] = ['Cortex', 'Fluentd', 'Jaeger', 'OpenMetrics', 'OpenTelemetry', 'Prometheus', 'Thanos']
-charts_categories['Storage'] = ['CubeFS', 'etcd', 'Longhorn', 'Rook', 'TiKV', 'Vitess']
+charts_categories['Storage, databases'] = ['CubeFS', 'etcd', 'Longhorn', 'Rook', 'TiKV', 'Vitess']
 charts_categories['Chaos engineering'] = ['Chaos Mesh', 'Litmus']
 charts_categories['Security'] = ['Falco', 'in-toto', 'Kyverno', 'Notary', 'Open Policy Agent (OPA)', 'SPIFFE', 'SPIRE', 'The Update Framework (TUF)']
 
